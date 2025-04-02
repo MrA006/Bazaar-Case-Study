@@ -21,7 +21,7 @@ client.query(`
     CREATE TABLE IF NOT EXISTS Product (
         id SERIAL PRIMARY KEY ,
         name VARCHAR(50) NOT NULL UNIQUE,
-        current_quantity INTEGER DEFAULT 0 CHECK(current_quantity >= 0),
+        description TEXT ,
         created_At TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   
@@ -31,7 +31,22 @@ client.query(`
         name VARCHAR(50) NOT NULL UNIQUE,
         address VARCHAR(50) NOT NULL UNIQUE
     );
+
         
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        store_id INTEGER REFERENCES store(id),
+        role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'store_manager', 'viewer')),
+        is_active BOOLEAN DEFAULT TRUE, 
+        last_login TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    --ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE;
+
+
     CREATE TABLE IF NOT EXISTS stock_movement (
     id SERIAL PRIMARY KEY,
         product_id INTEGER REFERENCES product(id),
@@ -40,6 +55,7 @@ client.query(`
         type TEXT CHECK(type IN ('stock_in', 'sold', 'removed')),
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
     CREATE TABLE IF NOT EXISTS inventory (
         product_id INTEGER REFERENCES product(id),
         store_id INTEGER REFERENCES store(id),

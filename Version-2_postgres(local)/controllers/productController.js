@@ -4,7 +4,7 @@ export const getFilteredProducts = async (req,res) => {
     const {searchName, dateRange, store_id} = req.body || {};
     let query = 'SELECT * FROM Product where 1 = 1 ';
     let queryParams = [];
-  
+    
     if(searchName){
       queryParams.push(`%${searchName}%`);
       query += `and name ILIKE $${queryParams.length}`;
@@ -18,7 +18,7 @@ export const getFilteredProducts = async (req,res) => {
       // const startDate = new Date(dateRange[0]).toISOString();
       // const endDate = new Date(dateRange[1]).toISOString();
       queryParams.push(dateRange[0], dateRange[1]);
-      query += ` AND DATE(timestamp) BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
+      query += ` AND DATE(created_At) BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
     }
   
   
