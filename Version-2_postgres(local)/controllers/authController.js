@@ -9,6 +9,10 @@ export const registerUser = async (req, res) => {
         return res.status(400).json({ message: "Missing required fields" });
     }
 
+    if( (role == "store_manager" || role == "admin") && req.user.role != "admin"){
+        return res.status(403).json({ message: 'Forbidden - Permission denied - only admin can change store Manager or add another admin' });
+    }
+
     try {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
