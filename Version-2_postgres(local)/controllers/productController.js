@@ -2,23 +2,23 @@ import pool from '../db.js'
 
 export const getFilteredProducts = async (req,res) => {
     const {searchName, dateRange, store_id} = req.body || {};
-    let query = 'SELECT * FROM Product where 1 = 1 ';
+    let query = 'SELECT * FROM Product p JOIN inventory i on p.id = i.product_id where 1 = 1 ';
     let queryParams = [];
     
     if(searchName){
       queryParams.push(`%${searchName}%`);
-      query += `and name ILIKE $${queryParams.length}`;
+      query += `and p.name ILIKE $${queryParams.length}`;
     }
   
     if(store_id){
       queryParams.push(store_id);
-      query += `and store_id = $${queryParams.length}`;
+      query += `and i.store_id = $${queryParams.length}`;
     }
     if (dateRange) {
       // const startDate = new Date(dateRange[0]).toISOString();
       // const endDate = new Date(dateRange[1]).toISOString();
       queryParams.push(dateRange[0], dateRange[1]);
-      query += ` AND DATE(created_At) BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
+      query += ` AND DATE(p.created_At) BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
     }
   
   
@@ -36,13 +36,15 @@ export const getFilteredProducts = async (req,res) => {
 
 
 export const addProduct = async (req, res) => {
-    let { name, stock, store_id } = req.body;
-    
-    if(!stock) stock = 0;
+    let { name, description } = req.body;
+
+    if(!name){
+      return res.status(400).json({ message: "Missing required fields" });
+    }
 
     try{
 
-        const result = await pool.query('INSERT INTO Product (name, current_quantity, store_id) VALUES ($1, $2, $3)', [name, stock, store_id]);
+        const result = await pool.query('INSERT INTO Product (name, description) VALUES ($1, $2)', [name, description]);
         res.status(201).json({ rowAdded: result.rowCount });
 
     }catch(err){

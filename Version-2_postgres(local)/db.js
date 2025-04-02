@@ -44,17 +44,17 @@ client.query(`
         created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
-    --ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE;
-
 
     CREATE TABLE IF NOT EXISTS stock_movement (
     id SERIAL PRIMARY KEY,
         product_id INTEGER REFERENCES product(id),
-        store_id INTEGER REFERENCES store(id),
+        source_store_id INTEGER REFERENCES store(id),
+        destination_store_id INTEGER REFERENCES store(id),
         quantity INTEGER NOT NULL,
-        type TEXT CHECK(type IN ('stock_in', 'sold', 'removed')),
+        type TEXT CHECK(type IN ('stock_in', 'sold', 'removed', 'returned', 'transferred')),
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
 
     CREATE TABLE IF NOT EXISTS inventory (
         product_id INTEGER REFERENCES product(id),
