@@ -6,63 +6,48 @@ export const getAllOperations = async (req,res) => {
 }
 
 export const performOperation = async (req, res) => {
-    const { product_id, quantity, type, store_id, source_store_id, destination_store_id } = req.body;
-
-    if (!['stock_in', 'sold', 'removed', 'returned', 'transferred'].includes(type)) {
-        return res.status(400).json({ error: 'Invalid movement type' });
+    const { product_id, quantity, type, store_id } = req.body;
+  
+    if (!['stock_in', 'sold', 'removed', 'returned'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid movement type' });
     }
-
+  
+    if (!(req.user.role === 'store_manager' && req.user.store_id === store_id) && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Permission denied: You are not manager of this store.' });
+    }
+  
     try {
-        await pool.query('BEGIN');
+      await pool.query('BEGIN');
 
-        if (type === 'transferred') {
-            if (!source_store_id || !destination_store_id || source_store_id === destination_store_id) {
-                return res.status(400).json({ error: 'Invalid transfer details' });
-            }
-
-            await pool.query(
-                'UPDATE inventory SET quantity = quantity - $1 WHERE product_id = $2 AND store_id = $3',
-                [quantity, product_id, source_store_id]
-            );
-
-            await pool.query(
-                'INSERT INTO inventory (product_id, store_id, quantity) VALUES ($1, $2, $3) ON CONFLICT (product_id, store_id) DO UPDATE SET quantity = inventory.quantity + $3',
-                [product_id, destination_store_id, quantity]
-            );
-
-            await pool.query(
-                'INSERT INTO stock_movement (product_id, source_store_id, destination_store_id, quantity, type) VALUES ($1, $2, $3, $4, $5)',
-                [product_id, source_store_id, destination_store_id, quantity, type]
-            );
-        } else {
-          
-            const adjustment = type === 'stock_in' || type === 'returned' ? quantity : -quantity;
-
-            let result = 
-            await pool.query(
-                'UPDATE inventory SET quantity = quantity + $1 WHERE product_id = $2 AND store_id = $3',
-                [adjustment, product_id, store_id]
-            );
-
-            if( result.rowCount == 0){
-
-                await pool.query('ROLLBACK');
-
-                res.status(400).json({ error: "no stock found for operation." });
-                return;
-            }
-
-            await pool.query(
-                'INSERT INTO stock_movement (product_id, source_store_id, quantity, type) VALUES ($1, $2, $3, $4)',
-                [product_id, store_id, quantity, type]
-            );
-        }
-
-        await pool.query('COMMIT'); 
-        res.status(201).json({ success: true });
-    } catch (error) {
+      const adjustment = (type === 'stock_in' || type === 'returned') ? quantity : -quantity;
+  
+      let updateResult = await pool.query(
+        'UPDATE inventory SET quantity = quantity + $1 WHERE product_id = $2 AND store_id = $3',
+        [adjustment, product_id, store_id]
+      );
+  
+      if (updateResult.rowCount === 0 && !(type === 'stock_in' || type === 'returned')) {
         await pool.query('ROLLBACK');
-        res.status(400).json({ error: error.message });
+        return res.status(400).json({ error: 'No stock found for removal operation.' });
+      }else{
+        updateResult = await pool.query(
+            'INSERT INTO inventory (quantity, product_id ,store_id) VALUES ($1, $2, $3)',
+            [adjustment, product_id, store_id]
+        );
+      }
+
+  
+      await pool.query(
+        'INSERT INTO stock_movement (product_id, store_id, quantity, type) VALUES ($1, $2, $3, $4)',
+        [product_id, store_id, quantity, type]
+      );
+  
+      await pool.query('COMMIT');
+      res.status(201).json({ success: true });
+    } catch (error) {
+      await pool.query('ROLLBACK');
+      res.status(400).json({ error: error.message });
     }
-};
+  };
+  
 

@@ -1,21 +1,20 @@
 import pkg from 'pg';
 const {Client} = pkg;
+import dotenv from 'dotenv';
+dotenv.config();
 
 const client = new Client({
-    user: 'postgres',         
-    host: 'localhost',         
-    database: 'inventory',          
-    password: 'postgres',    
+    user: process.env.user,         
+    host: process.env.host,         
+    database: process.env.database,          
+    password: process.env.password,    
     port: 5432,                
 });
-
-// console.log('here')
 
 client.connect()
 .then(() => console.log('Connected to PostgreSQL'))
 .catch(err => console.error('Connection error', err.stack));
   
-// Creating tables   
 client.query(`
     
     CREATE TABLE IF NOT EXISTS Product (
@@ -48,12 +47,11 @@ client.query(`
     CREATE TABLE IF NOT EXISTS stock_movement (
     id SERIAL PRIMARY KEY,
         product_id INTEGER REFERENCES product(id),
-        source_store_id INTEGER REFERENCES store(id),
-        destination_store_id INTEGER REFERENCES store(id),
+        store_id INTEGER REFERENCES store(id),
         quantity INTEGER NOT NULL,
-        type TEXT CHECK(type IN ('stock_in', 'sold', 'removed', 'returned', 'transferred')),
+        type TEXT CHECK(type IN ('stock_in', 'sold', 'removed', 'returned')),
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
+    );  
 
 
     CREATE TABLE IF NOT EXISTS inventory (

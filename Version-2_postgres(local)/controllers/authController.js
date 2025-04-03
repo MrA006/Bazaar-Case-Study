@@ -43,7 +43,7 @@ export const loginUser = async (req, res) => {
 
         if(!matchPassword) return res.status(401).json({ message: "Invalid credentials" });
 
-        const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '2h' });
+        const token = jwt.sign({ id: user.id, role: user.role, store_id : user.store_id }, process.env.JWT_SECRET, { expiresIn: '2h' });
 
         res.cookie("token", token, { httpOnly: true, secure: false });
         await pool.query("UPDATE users SET last_login = NOW() WHERE id = $1", [user.id]);
@@ -61,13 +61,16 @@ export const logoutUser = (req, res) => {
 };
 
 export const disableUser = async (req, res) => {
-    const { id, username } = req.params;
+    const { id, username } = req.body;
     
     const query = id?"UPDATE users SET is_active = FALSE WHERE id = $1":"UPDATE users SET is_active = FALSE WHERE username = $1 ";
     const queryParams = id?[id]:[username];
 
     try {
-        await pool.query(query , queryParams);
+        const result = await pool.query(query , queryParams);
+        if(result.rowCount == 0){
+            res.status(404).json({ error: "User Not Found" });    
+        }
         res.json({ message: "User disabled successfully" });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -75,13 +78,16 @@ export const disableUser = async (req, res) => {
 };
 
 export const enableUser = async (req, res) => {
-    const { id, username } = req.params;
+    const { id, username } = req.body;
     
     const query = id?"UPDATE users SET is_active = TRUE WHERE id = $1":"UPDATE users SET is_active = TRUE WHERE username = $1 ";
     const queryParams = id?[id]:[username];
 
     try {
-        await pool.query(query , queryParams);
+        const result = await pool.query(query , queryParams);
+        if(result.rowCount == 0){
+            res.status(404).json({ error: "User Not Found" });    
+        }
         res.json({ message: "User enabled successfully" });
     } catch (err) {
         res.status(500).json({ error: err.message });

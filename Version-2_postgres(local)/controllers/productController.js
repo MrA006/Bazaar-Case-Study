@@ -7,24 +7,18 @@ export const getFilteredProducts = async (req,res) => {
     
     if(searchName){
       queryParams.push(`%${searchName}%`);
-      query += `and p.name ILIKE $${queryParams.length}`;
+      query += `and p.name ILIKE $${queryParams.length} `;
     }
   
     if(store_id){
       queryParams.push(store_id);
-      query += `and i.store_id = $${queryParams.length}`;
+      query += `and i.store_id = $${queryParams.length} `;
     }
     if (dateRange) {
-      // const startDate = new Date(dateRange[0]).toISOString();
-      // const endDate = new Date(dateRange[1]).toISOString();
       queryParams.push(dateRange[0], dateRange[1]);
-      query += ` AND DATE(p.created_At) BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
+      query += `AND DATE(p.created_At) BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
     }
   
-  
-    // console.log('query')
-    // console.log(query)
-    // console.log(dateRange)
     try {
       const products = await pool.query(query,queryParams);
       
