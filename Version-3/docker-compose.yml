@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # NGINX Load Balancer
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app
+    networks:
+      - app_network
+
+  # Node.js Application Service
+  app:
+    build: .
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=db
+      - DB_PORT=5400
+      - DB_NAME=your_database_name
+      - DB_USER=your_db_user
+      - DB_PASSWORD=your_db_password
+      - JWT_SECRET=your_jwt_secret
+    networks:
+      - app_network
+    deploy:
+      replicas: 3  # Scale 3 instances of app (alternative to --scale flag)
+
+  # PostgreSQL Database Service
+  db:
+    image: postgres:13
+    container_name: db
+    environment:
+      - POSTGRES_USER=your_db_user
+      - POSTGRES_PASSWORD=your_db_password
+      - POSTGRES_DB=your_database_name
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5400:5400"
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  app_network:
+    driver: bridge

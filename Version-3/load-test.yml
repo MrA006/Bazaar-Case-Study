@@ -1,0 +1,9 @@
+config:
+  target: "http://localhost"  # Your NGINX load balancer address
+  phases:
+    - duration: 60  # Run the test for 60 seconds
+      arrivalRate: 50  # 50 new virtual users (requests) per second
+scenarios:
+  - flow:
+      - get:
+          url: "/products"  # Change to an endpoint you want to test
