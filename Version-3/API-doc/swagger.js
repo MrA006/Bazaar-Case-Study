@@ -9,7 +9,7 @@ const options = {
       version: '1.0.0',
       description: 'API documentation for the Bazaar Inventory authentication system',
     },
-    servers: [{ url: 'http://localhost:3000' }],
+    servers: [{ url: `http://localhost:${process.env.SWAGGER_PORT}` }],
   },
   apis: ['./routes/*.js'],
 };

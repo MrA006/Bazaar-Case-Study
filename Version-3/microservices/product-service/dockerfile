@@ -1,0 +1,26 @@
+# Use Node.js base image
+FROM node:18
+
+# Set working directory inside the container
+WORKDIR /app
+
+# Copy shared dependencies first (from build context root)
+COPY package.json package-lock.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy shared folders from the build context
+COPY middleware ./middleware
+COPY API-doc ./API-doc
+COPY Utilities ./Utilities
+COPY db.js ./db.js
+
+# Copy service-specific code
+COPY microservices/product-service/ ./
+
+# Expose port 3001
+EXPOSE 3001
+
+# Start the service
+CMD ["node", "server.js"]

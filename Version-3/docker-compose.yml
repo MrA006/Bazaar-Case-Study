@@ -1,54 +1,81 @@
 version: '3.8'
 
 services:
-  # NGINX Load Balancer
-  nginx:
-    image: nginx:latest
-    container_name: nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - app
-    networks:
-      - app_network
-
-  # Node.js Application Service
-  app:
-    build: .
-    environment:
-      - NODE_ENV=development
-      - DB_HOST=db
-      - DB_PORT=5400
-      - DB_NAME=your_database_name
-      - DB_USER=your_db_user
-      - DB_PASSWORD=your_db_password
-      - JWT_SECRET=your_jwt_secret
-    networks:
-      - app_network
-    deploy:
-      replicas: 3  # Scale 3 instances of app (alternative to --scale flag)
-
-  # PostgreSQL Database Service
-  db:
+  postgres:
     image: postgres:13
-    container_name: db
+    container_name: postgres_db
+    restart: always
     environment:
-      - POSTGRES_USER=your_db_user
-      - POSTGRES_PASSWORD=your_db_password
-      - POSTGRES_DB=your_database_name
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: inventory
+    ports:
+      - "5430:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  main-service:
+    build:
+      context: ./
+      dockerfile: ./microservices/main-service/Dockerfile
+    container_name: main_service
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5430/inventory
+      SWAGGER_PORT: 3000
     ports:
-      - "5400:5400"
-    networks:
-      - app_network
+      - "3000:3000"
+    env_file:
+      - .env 
+
+  product-service:
+    build:
+      context: ./
+      dockerfile: ./microservices/product-service/dockerfile
+    container_name: product_service
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5430/inventory
+      SWAGGER_PORT: 3001
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+
+  stock-movement-service:
+    build:
+      context: ./
+      dockerfile: ./microservices/stock-movement-service/Dockerfile
+    container_name: stock_movement_service
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5430/inventory
+      SWAGGER_PORT: 3002
+    ports:
+      - "3002:3002"
+    env_file:
+      - .env
+
+  # audit-log-service:
+  #   build:
+  #     context: ./
+  #     dockerfile: ./microservices/audit-log-service/Dockerfile
+  #   container_name: audit_log_service
+  #   restart: always
+  #   depends_on:
+  #     - postgres
+  #   environment:
+  #     DATABASE_URL: postgres://user:password@postgres:5430/inventory
+  #   ports:
+  #     - "3003:3003"
+  #   env_file:
+  #     - .env
 
 volumes:
   postgres_data:
-    driver: local
-
-networks:
-  app_network:
-    driver: bridge
