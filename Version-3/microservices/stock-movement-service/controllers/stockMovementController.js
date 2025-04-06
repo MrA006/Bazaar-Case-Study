@@ -1,5 +1,4 @@
 import pool from '../db.js'
-import logAudit from '../Utilities/auditLogger.js';
 import { publishAuditEvent } from '../Utilities/auditPublisher.js';
 
 
@@ -11,7 +10,7 @@ export const getAllOperations = async (req,res) => {
 export const performOperation = async (req, res) => {
   const { product_id, quantity, type, store_id } = req.body;
 
-  console.log(product_id, quantity, type, store_id);
+  // console.log(product_id, quantity, type, store_id);
 
   if (!['stock_in', 'sold', 'removed', 'returned'].includes(type)) {
     return res.status(400).json({ error: 'Invalid movement type' });

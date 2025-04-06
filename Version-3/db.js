@@ -16,13 +16,6 @@ const pool = new Pool({
     connectionTimeoutMillis: 2000
 });
 
-console.log("here 2") 
-console.log(process.env.DB_USER)
-console.log(process.env.DB_HOST)
-console.log(process.env.DB_NAME)
-console.log(process.env.DB_PASSWORD)
-console.log(process.env.DB_PORT)
-
 
 pool.on('connect', () => {
     console.log('Connected to PostgreSQL using Pool');

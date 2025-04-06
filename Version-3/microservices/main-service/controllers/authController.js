@@ -1,7 +1,6 @@
 import pool from '../db.js'
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import logAudit from "../Utilities/auditLogger.js"; 
 import { publishAuditEvent } from '../Utilities/auditPublisher.js';
 
 

@@ -1,0 +1,18 @@
+
+
+Important Notes : 
+- schema is given(commented) in db.js, if schema not already defined uncomment it and run it once.
+- make sure you have docker 
+
+
+to run : 
+RUN command terminal : 
+docker compose up --build 
+
+
+running : 
+4 services will be running :
+1) main-service = for authentication( login, logout etc) and storeController (addstore , getAllStores)
+2) product-service = for products( getFilteredProducts, addProduct )
+3) stock-movement-service = for stock movement( move stock , getAlloperations)
+4) audit-log-service = for logging any changes in the database( UPDATE, DELETE, ADD)

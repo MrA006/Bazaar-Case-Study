@@ -1,6 +1,5 @@
 import { publishAuditEvent } from '../Utilities/auditPublisher.js';
 import pool from '../db.js'
-import logAudit from '../Utilities/auditLogger.js';
 
 export const getFilteredProducts = async (req,res) => {
   const {searchName, startDate, endDate, store_id} = req.query || {};
@@ -22,8 +21,6 @@ export const getFilteredProducts = async (req,res) => {
     query += `AND DATE(p.created_At) BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
   }
 
-  // console.log(query)
-  // console.log(queryParams)
   try {
     const products = await pool.query(query,queryParams);
 
@@ -52,15 +49,6 @@ export const addProduct = async (req, res) => {
       );
 
       const newProduct = result.rows[0];
-
-      // await logAudit(client, {
-      //     service: "product",
-      //     operation: "INSERT",
-      //     userId,
-      //     tableName: "Product",
-      //     recordId: newProduct.id,
-      //     newData: newProduct
-      // });
 
       const auditEvent = {
           service: "product",

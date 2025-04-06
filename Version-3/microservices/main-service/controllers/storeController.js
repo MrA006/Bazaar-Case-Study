@@ -1,5 +1,4 @@
 import pool from '../db.js'
-import logAudit from '../Utilities/auditLogger.js';
 import { publishAuditEvent } from '../Utilities/auditPublisher.js';
 
 
