@@ -13,19 +13,30 @@ export const registerUser = async (req, res) => {
         return res.status(403).json({ message: 'Forbidden - Permission denied - only admin can change store Manager or add another admin' });
     }
 
+    const client = await pool.connect();
+
     try {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const result = await pool.query(
+        client.query("BEGIN")
+
+        const result = await client.query(
             `INSERT INTO users (username, password_hash, role, store_id) 
              VALUES ($1, $2, $3, $4) RETURNING id, username, role`,
             [username, hashedPassword, role, store_id]
         );
 
+        client.query("COMMIT");
+
+
         res.status(201).json({ message: "User created successfully", user: result.rows[0] });
     } catch (err) {
+        client.query("ROLLBACK");
+
         res.status(500).json({ error: err.message });
+    }finally{
+        client.release();
     }
 };
 
@@ -66,14 +77,27 @@ export const disableUser = async (req, res) => {
     const query = id?"UPDATE users SET is_active = FALSE WHERE id = $1":"UPDATE users SET is_active = FALSE WHERE username = $1 ";
     const queryParams = id?[id]:[username];
 
+    const client = await pool.connect();
+
     try {
-        const result = await pool.query(query , queryParams);
+
+        client.query("BEGIN");
+
+        const result = await client.query(query , queryParams);
         if(result.rowCount == 0){
             res.status(404).json({ error: "User Not Found" });    
         }
+
+        client.query("COMMIT");
+
         res.json({ message: "User disabled successfully" });
     } catch (err) {
+        client.query("ROLLBACK");
+
         res.status(500).json({ error: err.message });
+    }finally{
+        client.release();
+
     }
 };
 
@@ -83,14 +107,27 @@ export const enableUser = async (req, res) => {
     const query = id?"UPDATE users SET is_active = TRUE WHERE id = $1":"UPDATE users SET is_active = TRUE WHERE username = $1 ";
     const queryParams = id?[id]:[username];
 
+    const client = await pool.connect();
+
     try {
-        const result = await pool.query(query , queryParams);
+
+        client.query("BEGIN");
+
+        const result = await client.query(query , queryParams);
         if(result.rowCount == 0){
             res.status(404).json({ error: "User Not Found" });    
         }
+
+        client.query("COMMIT");
+
         res.json({ message: "User enabled successfully" });
     } catch (err) {
+        client.query("ROLLBACK");
+
         res.status(500).json({ error: err.message });
+    }finally{
+        client.release();
+
     }
 };
 

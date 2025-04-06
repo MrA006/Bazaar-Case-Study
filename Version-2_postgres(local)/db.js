@@ -1,9 +1,9 @@
 import pkg from 'pg';
-const {Client} = pkg;
+const {Pool} = pkg;
 import dotenv from 'dotenv';
 dotenv.config();
 
-const client = new Client({
+const pool = new Pool({
     user: process.env.user,         
     host: process.env.host,         
     database: process.env.database,          
@@ -11,11 +11,17 @@ const client = new Client({
     port: 5432,                
 });
 
-client.connect()
-.then(() => console.log('Connected to PostgreSQL'))
-.catch(err => console.error('Connection error', err.stack));
-  
-client.query(`
+
+pool.on('connect', () => {
+    console.log('Connected to PostgreSQL using Pool');
+});
+
+pool.on('error', (err) => {
+    console.error('Error in PostgreSQL connection:', err);
+});
+
+
+pool.query(`
     
     CREATE TABLE IF NOT EXISTS Product (
         id SERIAL PRIMARY KEY ,
@@ -64,4 +70,4 @@ client.query(`
 
 `);
   
-  export default client;
+  export default pool;

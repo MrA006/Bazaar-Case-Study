@@ -35,14 +35,24 @@ export const addProduct = async (req, res) => {
     if(!name){
       return res.status(400).json({ message: "Missing required fields" });
     }
-
+    
+    const client = await pool.connect();
     try{
 
-        const result = await pool.query('INSERT INTO Product (name, description) VALUES ($1, $2)', [name, description]);
+        await client.query("BEGIN");
+
+        const result = await client.query('INSERT INTO Product (name, description) VALUES ($1, $2)', [name, description]);
+
+        await client.query("COMMIT");
+
         res.status(201).json({ rowAdded: result.rowCount });
 
     }catch(err){
+        await client.query("ROLLBACK");
+
         res.status(400).json(err);
+    } finally{
+        client.release();
     }
     
 }
