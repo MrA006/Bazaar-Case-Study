@@ -1,11 +1,25 @@
 import pool from '../db.js'
 import { publishAuditEvent } from '../Utilities/auditPublisher.js';
+import redisClient from '../Utilities/redisClient.js';
 
 
-export const getAllStores =  async (req,res) => {
-    const operations = await pool.query('SELECT * FROM store',[]);
-    res.json(operations.rows);
-}
+export const getAllStores = async (req, res) => {
+    try {
+        const cached = await redisClient.get('stores:all');
+        if (cached){ 
+          console.log('Returning cached data');
+
+            return res.json(JSON.parse(cached));
+        }
+
+        const operations = await pool.query('SELECT * FROM store');
+        await redisClient.set('stores:all', JSON.stringify(operations.rows), { EX: 60 });
+
+        res.json(operations.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
 
 
 export const addStore = async (req, res) => {
@@ -37,6 +51,9 @@ export const addStore = async (req, res) => {
         await publishAuditEvent(auditEvent);
 
         await client.query("COMMIT")
+        
+        await redisClient.del("stores:all");
+
         res.status(201).json({ rowAdded: result.rowCount, storeId });
 
     } catch (err) {

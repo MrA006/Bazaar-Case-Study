@@ -2,6 +2,7 @@ import pool from '../db.js'
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { publishAuditEvent } from '../Utilities/auditPublisher.js';
+import redisClient from '../Utilities/redisClient.js';
 
 
 export const registerUser = async (req, res) => {
@@ -44,6 +45,8 @@ export const registerUser = async (req, res) => {
         await publishAuditEvent(auditEvent);
 
         client.query("COMMIT");
+
+        await redisClient.del("users:all");
 
         res.status(201).json({ message: "User created successfully", user: result.rows[0] });
     } catch (err) {
@@ -119,6 +122,8 @@ export const disableUser = async (req, res) => {
         await publishAuditEvent(auditEvent);
 
         client.query("COMMIT");
+        await redisClient.del("users:all");
+
         res.json({ message: "User disabled successfully" });
     } catch (err) {
         client.query("ROLLBACK");
@@ -162,7 +167,10 @@ export const enableUser = async (req, res) => {
         };
         await publishAuditEvent(auditEvent);
         
+
         await client.query("COMMIT");
+
+        await redisClient.del("users:all");
 
         res.json({ message: "User enabled successfully" });
     } catch (err) {
@@ -176,7 +184,18 @@ export const enableUser = async (req, res) => {
 
 
 export const getAllUsers = async (req, res) => {
-    const result = await pool.query("SELECT * FROM users");
-    res.json(result.rows);
+    try {
+        const cacheKey = "users:all";
+        const cachedUsers = await redisClient.get(cacheKey);
+        if (cachedUsers) {
+            console.log('returning cached users');
+            return res.json(JSON.parse(cachedUsers));
+        }
+        const result = await pool.query("SELECT * FROM users");
+        await redisClient.set(cacheKey, JSON.stringify(result.rows), { EX: 60 });
 
-}
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

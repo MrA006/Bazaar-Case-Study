@@ -1,5 +1,6 @@
 import { publishAuditEvent } from '../Utilities/auditPublisher.js';
 import pool from '../db.js'
+import redisClient from '../Utilities/redisClient.js';
 
 export const getFilteredProducts = async (req,res) => {
   const {searchName, startDate, endDate, store_id} = req.query || {};
@@ -21,8 +22,19 @@ export const getFilteredProducts = async (req,res) => {
     query += `AND DATE(p.created_At) BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`;
   }
 
+  const cacheKey = `products:${searchName || 'all'}:${startDate || 'none'}:${endDate || 'none'}:${store_id || 'all'}`;
+
+
   try {
+    const cachedProducts = await redisClient.get(cacheKey);
+    if (cachedProducts) {
+      console.log('Returning cached data');
+      return res.json(JSON.parse(cachedProducts));
+    }
+
     const products = await pool.query(query,queryParams);
+
+    await redisClient.set(cacheKey, JSON.stringify(products.rows), { EX: 60 });
 
     res.json(products.rows);
   } catch (error) {
@@ -62,6 +74,11 @@ export const addProduct = async (req, res) => {
       await publishAuditEvent(auditEvent);
 
       await client.query("COMMIT");
+
+      const keys = await redisClient.keys("products:*");
+      if (keys.length > 0) {
+        await redisClient.del(keys);
+      }
 
       res.status(201).json({ rowAdded: result.rowCount, newProduct });
 
