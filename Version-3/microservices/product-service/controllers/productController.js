@@ -1,3 +1,4 @@
+import { publishAuditEvent } from '../Utilities/auditPublisher.js';
 import pool from '../db.js'
 import logAudit from '../Utilities/auditLogger.js';
 
@@ -32,8 +33,6 @@ export const getFilteredProducts = async (req,res) => {
   }
 }
 
-
-
 export const addProduct = async (req, res) => {
   let { name, description } = req.body;
   const userId = req.user?.id || null;
@@ -54,14 +53,25 @@ export const addProduct = async (req, res) => {
 
       const newProduct = result.rows[0];
 
-      await logAudit(client, {
+      // await logAudit(client, {
+      //     service: "product",
+      //     operation: "INSERT",
+      //     userId,
+      //     tableName: "Product",
+      //     recordId: newProduct.id,
+      //     newData: newProduct
+      // });
+
+      const auditEvent = {
           service: "product",
           operation: "INSERT",
           userId,
           tableName: "Product",
           recordId: newProduct.id,
-          newData: newProduct
-      });
+          newData: newProduct,
+          timestamp: new Date().toISOString()
+      };
+      await publishAuditEvent(auditEvent);
 
       await client.query("COMMIT");
 

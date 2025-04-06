@@ -1,5 +1,6 @@
 import pool from '../db.js'
 import logAudit from '../Utilities/auditLogger.js';
+import { publishAuditEvent } from '../Utilities/auditPublisher.js';
 
 
 export const getAllStores =  async (req,res) => {
@@ -24,14 +25,17 @@ export const addStore = async (req, res) => {
 
         const storeId = result.rows[0].id;
 
-        await logAudit(client, {
+        const auditEvent = {
             service: "store_management",
             operation: "INSERT",
             userId,
             tableName: "Store",
             recordId: storeId,
-            newData: { name, address }
-        });
+            newData: { name, address },
+            timestamp: new Date().toISOString()
+        };
+
+        await publishAuditEvent(auditEvent);
 
         await client.query("COMMIT")
         res.status(201).json({ rowAdded: result.rowCount, storeId });

@@ -1,26 +1,21 @@
-# Use Node.js base image
 FROM node:18
 
-# Set working directory inside the container
 WORKDIR /app
 
-# Copy shared dependencies from the build context root
 COPY package.json package-lock.json ./
 
-# Install dependencies
 RUN npm install
 
-# Copy shared folders from the build context
 COPY middleware ./middleware
 COPY API-doc ./API-doc
 COPY Utilities ./Utilities
 COPY db.js ./db.js
+COPY wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
 
-# Copy service-specific code for main-service
 COPY microservices/main-service/ ./
 
-# Expose the port the service uses (3000)
 EXPOSE 3000
 
-# Start the service
-CMD ["node", "server.js"]
+#CMD ["node", "server.js"]
+CMD ["/wait-for-it.sh", "rabbitmq:5672", "--", "node", "server.js"]

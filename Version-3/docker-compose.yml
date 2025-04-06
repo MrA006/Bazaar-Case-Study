@@ -1,6 +1,18 @@
 version: '3.8'
 
 services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=password
+    ports:
+      - "5672:5672"   
+      - "15672:15672"  
+    networks:
+      - app_network
+
   postgres:
     image: postgres:13
     container_name: postgres_db
@@ -13,6 +25,25 @@ services:
       - "5430:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  audit-log-service:
+    build:
+      context: ./
+      dockerfile: ./microservices/audit-log-service/Dockerfile
+    container_name: audit_log_service
+    depends_on:
+      - rabbitmq
+      - postgres
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5430/inventory
+    env_file:
+      - .env
+    ports:
+      - "3005:3005"
+    networks:
+      - app_network
 
   main-service:
     build:
@@ -21,6 +52,7 @@ services:
     container_name: main_service
     restart: always
     depends_on:
+      - rabbitmq
       - postgres
     environment:
       DATABASE_URL: postgres://user:password@postgres:5430/inventory
@@ -28,7 +60,9 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - .env 
+      - .env
+    networks:
+      - app_network
 
   product-service:
     build:
@@ -37,6 +71,7 @@ services:
     container_name: product_service
     restart: always
     depends_on:
+      - rabbitmq
       - postgres
     environment:
       DATABASE_URL: postgres://user:password@postgres:5430/inventory
@@ -45,6 +80,8 @@ services:
       - "3001:3001"
     env_file:
       - .env
+    networks:
+      - app_network
 
   stock-movement-service:
     build:
@@ -53,6 +90,7 @@ services:
     container_name: stock_movement_service
     restart: always
     depends_on:
+      - rabbitmq
       - postgres
     environment:
       DATABASE_URL: postgres://user:password@postgres:5430/inventory
@@ -61,21 +99,12 @@ services:
       - "3002:3002"
     env_file:
       - .env
+    networks:
+      - app_network
 
-  # audit-log-service:
-  #   build:
-  #     context: ./
-  #     dockerfile: ./microservices/audit-log-service/Dockerfile
-  #   container_name: audit_log_service
-  #   restart: always
-  #   depends_on:
-  #     - postgres
-  #   environment:
-  #     DATABASE_URL: postgres://user:password@postgres:5430/inventory
-  #   ports:
-  #     - "3003:3003"
-  #   env_file:
-  #     - .env
+networks:
+  app_network:
+    driver: bridge
 
 volumes:
   postgres_data:

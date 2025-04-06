@@ -5,6 +5,7 @@ import productRouter from './routes/productRoutes.js';
 import cookieParser from 'cookie-parser';
 import { limiter } from './middleware/middleware.js';
 import cors from 'cors'; 
+import { initAuditPublisher } from './Utilities/auditPublisher.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(cors());
 
 app.use('/products', productRouter);
 
+initAuditPublisher();
 
 
 app.listen(3001,()=>{

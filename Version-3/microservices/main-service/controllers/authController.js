@@ -2,6 +2,8 @@ import pool from '../db.js'
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import logAudit from "../Utilities/auditLogger.js"; 
+import { publishAuditEvent } from '../Utilities/auditPublisher.js';
+
 
 export const registerUser = async (req, res) => {
     let { username, password, role, store_id } = req.body;
@@ -10,9 +12,9 @@ export const registerUser = async (req, res) => {
         return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // if ((role == "store_manager" || role == "admin") && req.user.role != "admin") {
-    //     return res.status(403).json({ message: "Forbidden - Only admin can assign store_manager or add another admin" });
-    // }
+    if ((role == "store_manager" || role == "admin") && req.user.role != "admin") {
+        return res.status(403).json({ message: "Forbidden - Only admin can assign store_manager or add another admin" });
+    }
 
     const client = await pool.connect();
     
@@ -29,15 +31,18 @@ export const registerUser = async (req, res) => {
             [username, hashedPassword, role, store_id]
         );
 
-        await logAudit(client, {
+        const newUser = result.rows[0];
+
+        const auditEvent = {
             service: "user_management",
-            operation: "CREATE",
-            userId: req.user.id,
+            operation: "INSERT",
+            userId: req.user.id, 
             tableName: "users",
-            recordId: result.rows[0].id,
-            previousData: null,
-            newData: result.rows[0],
-        });
+            recordId: newUser.id,
+            newData: newUser,
+            timestamp: new Date().toISOString()
+        };
+        await publishAuditEvent(auditEvent);
 
         client.query("COMMIT");
 
@@ -100,15 +105,19 @@ export const disableUser = async (req, res) => {
         client.query("BEGIN");
         await client.query(updateQuery, queryParams);
 
-        await logAudit(client, {
+        const newData = { ...previousData, is_active: false };
+
+        const auditEvent = {
             service: "user_management",
             operation: "DISABLE",
             userId: adminId,
             tableName: "users",
             recordId: previousData.id,
             previousData,
-            newData: { ...previousData, is_active: false },
-        });
+            newData,
+            timestamp: new Date().toISOString()
+        };
+        await publishAuditEvent(auditEvent);
 
         client.query("COMMIT");
         res.json({ message: "User disabled successfully" });
@@ -140,15 +149,20 @@ export const enableUser = async (req, res) => {
         await client.query("BEGIN");
         await client.query(updateQuery, queryParams);
 
-        await logAudit(client,{
+        const newData = { ...previousData, is_active: true };
+
+        const auditEvent = {
             service: "user_management",
             operation: "ENABLE",
             userId: adminId,
             tableName: "users",
             recordId: previousData.id,
             previousData,
-            newData: { ...previousData, is_active: true },
-        });
+            newData,
+            timestamp: new Date().toISOString()
+        };
+        await publishAuditEvent(auditEvent);
+        
         await client.query("COMMIT");
 
         res.json({ message: "User enabled successfully" });
