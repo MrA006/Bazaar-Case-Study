@@ -1,5 +1,5 @@
 import { publishAuditEvent } from '../Utilities/auditPublisher.js';
-import pool from '../db.js'
+import { readPool, writePool } from '../db.js';
 import redisClient from '../Utilities/redisClient.js';
 
 export const getFilteredProducts = async (req,res) => {
@@ -32,7 +32,7 @@ export const getFilteredProducts = async (req,res) => {
       return res.json(JSON.parse(cachedProducts));
     }
 
-    const products = await pool.query(query,queryParams);
+    const products = await readPool.query(query,queryParams);
 
     await redisClient.set(cacheKey, JSON.stringify(products.rows), { EX: 60 });
 
@@ -50,7 +50,7 @@ export const addProduct = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
   }
   
-  const client = await pool.connect();
+  const client = await writePool.connect();
 
   try {
 

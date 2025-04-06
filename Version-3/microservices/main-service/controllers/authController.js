@@ -1,4 +1,5 @@
-import pool from '../db.js'
+import { readPool, writePool } from '../db.js';
+
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { publishAuditEvent } from '../Utilities/auditPublisher.js';
@@ -16,7 +17,7 @@ export const registerUser = async (req, res) => {
         return res.status(403).json({ message: "Forbidden - Only admin can assign store_manager or add another admin" });
     }
 
-    const client = await pool.connect();
+    const client = await writePool.connect();
     
     if(!store_id) store_id = null;
 
@@ -32,6 +33,8 @@ export const registerUser = async (req, res) => {
         );
 
         const newUser = result.rows[0];
+
+        console.log(newUser)
 
         const auditEvent = {
             service: "user_management",
@@ -61,7 +64,7 @@ export const loginUser = async (req, res) => {
     const {username, password} = req.body;
 
     try {
-        const userRes = await pool.query("SELECT * FROM users WHERE username = $1 AND is_active = TRUE", [username]);
+        const userRes = await readPool.query("SELECT * FROM users WHERE username = $1 AND is_active = TRUE", [username]);
         
         if (userRes.rows.length <= 0) return res.status(401).json({ message: "Invalid credentials" });
 
@@ -74,7 +77,7 @@ export const loginUser = async (req, res) => {
         const token = jwt.sign({ id: user.id, role: user.role, store_id : user.store_id }, process.env.JWT_SECRET, { expiresIn: '2h' });
 
         res.cookie("token", token, { httpOnly: true, secure: false });
-        await pool.query("UPDATE users SET last_login = NOW() WHERE id = $1", [user.id]);
+        await writePool.query("UPDATE users SET last_login = NOW() WHERE id = $1", [user.id]);
 
         res.json({ message: "Login successful", user: { id: user.id, username: user.username, role: user.role } });
 
@@ -95,14 +98,20 @@ export const disableUser = async (req, res) => {
     const query = id ? "SELECT * FROM users WHERE id = $1" : "SELECT * FROM users WHERE username = $1";
     const updateQuery = id ? "UPDATE users SET is_active = FALSE WHERE id = $1" : "UPDATE users SET is_active = FALSE WHERE username = $1";
     const queryParams = id ? [id] : [username];
-    const client = await pool.connect();
+    const client = await writePool.connect();
 
     try {
-        const { rows } = await pool.query(query, queryParams);
+        const { rows } = await readPool.query(query, queryParams);
         if (rows.length === 0) {
             return res.status(404).json({ error: "User Not Found" });
         }
-        const previousData = rows[0];
+        const previousData = {
+            id : rows[0].id,
+            role : rows[0].role,
+            store_id : rows[0].store_id,
+            username : rows[0].username
+        };
+
 
         client.query("BEGIN");
         await client.query(updateQuery, queryParams);
@@ -140,15 +149,21 @@ export const enableUser = async (req, res) => {
     const query = id ? "SELECT * FROM users WHERE id = $1" : "SELECT * FROM users WHERE username = $1";
     const updateQuery = id ? "UPDATE users SET is_active = TRUE WHERE id = $1" : "UPDATE users SET is_active = TRUE WHERE username = $1";
     const queryParams = id ? [id] : [username];
-    const client = await pool.connect();
+    const client = await writePool.connect();
 
     try {
         
-        const { rows } = await pool.query(query, queryParams);
+        const { rows } = await readPool.query(query, queryParams);
         if (rows.length === 0) {
             return res.status(404).json({ error: "User Not Found" });
         }
-        const previousData = rows[0];
+        
+        const previousData = {
+            id : rows[0].id,
+            role : rows[0].role,
+            store_id : rows[0].store_id,
+            username : rows[0].username
+        };
 
         await client.query("BEGIN");
         await client.query(updateQuery, queryParams);
@@ -191,7 +206,7 @@ export const getAllUsers = async (req, res) => {
             console.log('returning cached users');
             return res.json(JSON.parse(cachedUsers));
         }
-        const result = await pool.query("SELECT * FROM users");
+        const result = await readPool.query("SELECT * FROM users");
         await redisClient.set(cacheKey, JSON.stringify(result.rows), { EX: 60 });
 
         res.json(result.rows);

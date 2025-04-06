@@ -5,8 +5,8 @@ const { Pool } = pkg;
 
 
 
-const pool = new Pool({
-    user: process.env.DB_USER,  
+const writePool = new Pool({
+    user: process.env.DB_USER,
     host: process.env.DB_HOST, 
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
@@ -16,13 +16,31 @@ const pool = new Pool({
     connectionTimeoutMillis: 2000
 });
 
-
-pool.on('connect', () => {
-    console.log('Connected to PostgreSQL using Pool');
+const readPool = new Pool({
+    user: process.env.DB_USER,
+    host: process.env.DB_REPLICA_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+    max: 10, 
+    idleTimeoutMillis: 30000, 
+    connectionTimeoutMillis: 2000
 });
 
-pool.on('error', (err) => {
-    console.error('Error in PostgreSQL connection:', err);
+writePool.on('connect', () => {
+    console.log('Connected to PostgreSQL write pool');
+});
+
+readPool.on('connect', () => {
+    console.log('Connected to PostgreSQL read pool');
+});
+
+writePool.on('error', (err) => {
+    console.error('Error in PostgreSQL write pool:', err);
+});
+
+readPool.on('error', (err) => {
+    console.error('Error in PostgreSQL read pool:', err);
 });
 
 // pool.query(`
@@ -88,4 +106,4 @@ pool.on('error', (err) => {
 
 // `);
   
-  export default pool;
+export { writePool, readPool };

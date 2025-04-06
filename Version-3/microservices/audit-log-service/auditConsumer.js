@@ -1,5 +1,5 @@
 import amqp from 'amqplib';
-import pool from './db.js';
+import { readPool, writePool } from './db.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -22,7 +22,7 @@ export const startAuditConsumer = async () => {
           const auditEvent = JSON.parse(msg.content.toString());
           // console.log('Received audit event:', auditEvent);
           try {
-            await pool.query(
+            await writePool.query(
               `INSERT INTO audit_log (service, operation, user_id, table_name, record_id, previous_data, new_data, timestamp)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
               [

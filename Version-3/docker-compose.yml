@@ -1,4 +1,4 @@
-version: '3.8'
+# version: '3.8'
 
 services:
   rabbitmq:
@@ -28,6 +28,21 @@ services:
     networks:
       - app_network
 
+  postgres-replica:
+    image: postgres:13
+    container_name: postgres_db_replica
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: inventory
+    ports:
+      - "5431:5432"
+    networks:
+      - app_network
+    depends_on:
+      - postgres
+    command: ["postgres", "-c", "hot_standby=on"]
+
   audit-log-service:
     build:
       context: ./
@@ -36,6 +51,8 @@ services:
     depends_on:
       - rabbitmq
       - postgres
+      - redis
+      - postgres-replica
     environment:
       DATABASE_URL: postgres://user:password@postgres:5430/inventory
     env_file:
@@ -54,6 +71,8 @@ services:
     depends_on:
       - rabbitmq
       - postgres
+      - redis
+      - postgres-replica
     environment:
       DATABASE_URL: postgres://user:password@postgres:5430/inventory
       SWAGGER_PORT: 3000
@@ -73,6 +92,8 @@ services:
     depends_on:
       - rabbitmq
       - postgres
+      - redis
+      - postgres-replica
     environment:
       DATABASE_URL: postgres://user:password@postgres:5430/inventory
       SWAGGER_PORT: 3001
@@ -92,6 +113,8 @@ services:
     depends_on:
       - rabbitmq
       - postgres
+      - redis
+      - postgres-replica
     environment:
       DATABASE_URL: postgres://user:password@postgres:5430/inventory
       SWAGGER_PORT: 3002

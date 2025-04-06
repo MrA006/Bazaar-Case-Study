@@ -1,4 +1,4 @@
-import pool from '../db.js'
+import { readPool, writePool } from '../db.js';
 import { publishAuditEvent } from '../Utilities/auditPublisher.js';
 import redisClient from '../Utilities/redisClient.js';
 
@@ -10,7 +10,7 @@ export const getAllOperations = async (req, res) => {
           return res.json(JSON.parse(cached));
         }
 
-        const operations = await pool.query('SELECT * FROM stock_movement');
+        const operations = await readPool.query('SELECT * FROM stock_movement');
         await redisClient.set('stock:operations', JSON.stringify(operations.rows), { EX: 60 }); // 60 seconds
         res.json(operations.rows);
     } catch (err) {
@@ -31,7 +31,7 @@ export const performOperation = async (req, res) => {
     return res.status(403).json({ error: 'Permission denied: You are not manager of this store.' });
   }
 
-  const client = await pool.connect();
+  const client = await writePool.connect();
 
   try {
     await client.query('BEGIN');
@@ -72,12 +72,15 @@ export const performOperation = async (req, res) => {
       [product_id, store_id, quantity, type]
     );
 
+    let previousData = {"quantity" : newQuantity - adjustment};
+
     const auditEvent = {
         service: "stock-movement",
         operation: "UPDATE",
         userId: req.user.id,
         tableName: "inventory",
         recordId: product_id,
+        previousData,
         newData: { quantity: newQuantity },
         timestamp: new Date().toISOString()
     };

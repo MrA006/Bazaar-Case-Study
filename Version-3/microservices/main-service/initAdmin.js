@@ -1,8 +1,8 @@
-import pool from './db.js';
+import {writePool} from './db.js';
 import bcrypt from 'bcrypt';
 
 export const initAdmin = async () => {
-    const client = await pool.connect();
+    const client = await writePool.connect();
     
     try {
       const checkResult = await client.query(

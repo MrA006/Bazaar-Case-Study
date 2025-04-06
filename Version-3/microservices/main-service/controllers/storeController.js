@@ -1,4 +1,5 @@
-import pool from '../db.js'
+import { readPool, writePool } from '../db.js';
+
 import { publishAuditEvent } from '../Utilities/auditPublisher.js';
 import redisClient from '../Utilities/redisClient.js';
 
@@ -12,7 +13,7 @@ export const getAllStores = async (req, res) => {
             return res.json(JSON.parse(cached));
         }
 
-        const operations = await pool.query('SELECT * FROM store');
+        const operations = await readPool.query('SELECT * FROM store');
         await redisClient.set('stores:all', JSON.stringify(operations.rows), { EX: 60 });
 
         res.json(operations.rows);
@@ -26,7 +27,7 @@ export const addStore = async (req, res) => {
     const { name, address } = req.body;
     const userId = req.user.id;
   
-    const client = await pool.connect();
+    const client = await writePool.connect();
     try {
 
         await client.query("BEGIN");
