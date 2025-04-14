@@ -1,0 +1,55 @@
+1. Horizontal Scalability
+
+Horizontal Scalability refers to adding more nodes to handle requests.
+Considering this microservices architecture was implemented.
+each microservice handles different kind of requests.
+
+Design Decision:
+Splitting the system into smaller services (product-service, audit-log-service, stock-movement-service, main-service)
+Each service has its own PostgreSQL connection pool
+
+Trade-offs:
+system's Scalability and availablity has increased but microservices has increased complexity in code, increased Overhead of multiple services.
+
+
+2. Event-Driven Architecture for Asynchronous Updates
+
+Design Decision:
+used RabbitMQ for audit_Log. audit-log-service consume messages from a queue and log them asynchronously.
+
+Trade-Off:
+RabbitMQ offers scalability but as the system grows complexity and overhead space of maintaining queue increases.
+
+
+3. Caching with Redis
+Caching with Redis was implemented to improve performance by reducing the number of direct database queries for frequently accessed data.
+
+Design Decisions:
+after first read operation data is cached for a limited amount of time.
+after each write operation cache is marked invalid.
+
+Trade Offs:
+Caching introduces the risk of data becoming stale if cache invalidation isn't handled properly. 
+This adds complexity of managing a cache layer and increases memory Usage.
+
+4. API Rate Limiting
+
+Design Decisions:
+Rate limits were set per route and per user,using express-rate-limit, to lower the risk of overloading the backend.
+
+Trade Off:
+Rate limiting adds a small overhead to each request but it helps prevent denial-of-service attacks.
+
+
+5. Read/Write Separation
+
+Design Decisions:
+By setting up read replicas, we can offload read queries to replicas while making sure that write queries go to the main database.
+
+Writes use the writePool, while reads use the readPool to direct traffic to the replicas.
+
+
+Trade Off;
+Managing read replicas and making sure that they are in sync with the primary database introduces additional complexity.
+increased overhead of keeping replicas of database.
+

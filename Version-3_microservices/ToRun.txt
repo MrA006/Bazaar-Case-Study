@@ -4,6 +4,12 @@ Important Notes :
 - schema is given(commented) in db.js, if schema not already defined uncomment it and run it once.
 - make sure you have docker 
 
+Prerequisites:
+Docker
+Docker Compose
+
+Environment Variables:
+Ensure that .env files are correctly set for each service, specifically for database URLs, RabbitMQ, and Redis configurations.
 
 to run : 
 RUN command terminal : 

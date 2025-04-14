@@ -6,10 +6,6 @@ const app = express();
 
 app.use(express.json());
 
-// app.use(('/', (req,res)=>{
-//     res.json("connected")
-// }))
-
 
 //prepare sql queries tobe used
 const allItemsQuery = db.prepare('SELECT * FROM Product');
