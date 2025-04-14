@@ -1,0 +1,16 @@
+
+
+Important Notes : 
+- schema is given(commented) in db.js, if schema not already defined uncomment it and run it once.
+- make sure you have node
+
+Prerequisites:
+node
+
+
+to run (first install node_modules): 
+RUN command on terminal : 
+npm install
+node server.js (OR nodemon server.js) 
+
+
